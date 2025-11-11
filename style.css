@@ -1,0 +1,278 @@
+/* Paleta de Cores de Reciclagem (Padrão CONAMA) */
+:root {
+    --color-primary: #4CAF50; /* Verde principal (Reciclagem) */
+    --color-secondary: #007bff; /* Azul secundário */
+    --color-background: #f0f8ff; /* Fundo leve, azul/branco */
+    --color-text: #333;
+    --color-card: #ffffff;
+    
+    /* Cores das lixeiras (padrão CONAMA) */
+    --color-plastico: #e74c3c; /* Vermelho */
+    --color-metal: #f1c40f; /* Amarelo */
+    --color-vidro: #2ecc71; /* Verde */
+    --color-papel: #3498db; /* Azul */
+    --color-comum: #95a5a6; /* Cinza */
+    --color-inconclusivo: var(--color-comum); /* Alias para manter a clareza */
+}
+
+/* 1. Reset e Tipografia (Mobile-First) */
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: 'Poppins', sans-serif;
+    background-color: var(--color-background);
+    color: var(--color-text);
+    padding: 15px;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+header {
+    text-align: center;
+    padding: 20px 0;
+    width: 100%;
+}
+
+h1 {
+    color: var(--color-primary);
+    font-size: 2em; 
+    margin-bottom: 5px;
+    animation: fadeIn 1s ease-out;
+}
+
+header p {
+    color: #666;
+    font-size: 0.9em;
+}
+
+main {
+    width: 100%;
+    max-width: 600px; /* Limite máximo para tablets/desktop */
+    flex-grow: 1;
+}
+
+/* 2. Controles (Botões) - Totalmente responsivo */
+#controls {
+    display: flex;
+    flex-direction: column; /* Pilha vertical em mobile */
+    gap: 15px;
+    margin-bottom: 30px;
+    padding: 10px 0;
+}
+
+#controls button, .custom-file-upload {
+    flex: 1;
+    padding: 15px;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    font-size: 1.1em;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    text-align: center;
+}
+
+#webcamButton {
+    background-color: var(--color-primary);
+    color: white;
+}
+
+.custom-file-upload {
+    display: block; 
+    background-color: var(--color-secondary);
+    color: white;
+}
+
+#controls button:hover, .custom-file-upload:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 10px rgba(0, 0, 0, 0.15);
+}
+
+#controls i {
+    margin-right: 8px;
+}
+
+#imageUpload {
+    display: none;
+}
+
+/* 3. Área de Predição */
+#prediction-area {
+    background-color: var(--color-card);
+    border-radius: 15px;
+    box-shadow: 0 8px 15px rgba(0, 0, 0, 0.1);
+    padding: 20px;
+    text-align: center;
+}
+
+#webcam-video, #uploaded-image {
+    width: 100%;
+    max-width: 100%;
+    height: auto;
+    border-radius: 10px;
+    margin-bottom: 20px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    display: block; 
+}
+
+
+/* ---------------------------------------------------- */
+/* 4. Estilo das Barras de Predição (NOVO) */
+/* ---------------------------------------------------- */
+#bars-container {
+    width: 100%;
+    margin: 20px 0;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 10px;
+    background-color: #f9f9f9;
+}
+
+.prediction-row {
+    display: flex;
+    align-items: center;
+    margin-bottom: 8px;
+    font-size: 0.9em;
+}
+
+.class-label {
+    width: 100px; /* Reduzido para melhor visualização em mobile */
+    text-align: right;
+    font-weight: 600;
+    padding-right: 10px;
+    text-transform: capitalize;
+    color: var(--color-text);
+    /* Quebra de linha se o rótulo for longo (ex: Papel/Papelão) */
+    word-break: break-word; 
+    line-height: 1.2;
+}
+
+.progress-bar-container {
+    flex-grow: 1;
+    height: 20px;
+    background-color: #eee;
+    border-radius: 4px;
+    position: relative;
+    overflow: hidden;
+}
+
+.progress-bar {
+    height: 100%;
+    width: 0;
+    transition: width 0.5s ease-out;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    padding-right: 5px;
+    font-weight: 700;
+    font-size: 0.8em;
+    color: white;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+/* Estilos de cor para as barras (baseados nas cores das lixeiras) */
+.bar-vidro { background-color: var(--color-vidro); }
+.bar-papel { background-color: var(--color-papel); }
+.bar-plastico { background-color: var(--color-plastico); }
+.bar-metais { background-color: var(--color-metal); }
+.bar-comum { background-color: var(--color-comum); }
+
+
+/* ---------------------------------------------------- */
+/* 5. Contêiner de Mensagem Principal */
+/* ---------------------------------------------------- */
+
+.result-box {
+    min-height: 100px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    border: 2px solid var(--color-inconclusivo);
+    border-radius: 10px;
+    padding: 15px;
+    transition: all 0.5s ease;
+    text-align: center;
+    margin-top: 20px;
+}
+
+.initial-message {
+    color: var(--color-inconclusivo);
+    font-style: italic;
+}
+
+/* Estilos dinâmicos de cor para a borda do resultado final */
+.disposal-plastico { border-color: var(--color-plastico); background-color: rgba(231, 76, 60, 0.05); }
+.disposal-metal { border-color: var(--color-metal); background-color: rgba(241, 196, 15, 0.05); }
+.disposal-vidro { border-color: var(--color-vidro); background-color: rgba(46, 204, 113, 0.05); }
+.disposal-papel { border-color: var(--color-papel); background-color: rgba(52, 152, 219, 0.05); }
+.disposal-comum, .disposal-inconclusivo { border-color: var(--color-comum); background-color: rgba(149, 165, 166, 0.05); }
+
+
+.result-header {
+    font-weight: 700;
+    margin-bottom: 5px;
+    animation: slideInUp 0.5s ease-out;
+}
+
+.disposal-text {
+    font-weight: 600;
+    color: var(--color-text); /* Cor de texto padrão para instruções */
+}
+
+/* 6. Animações */
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes slideInUp {
+    from {
+        transform: translateY(20px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+/* 7. Footer */
+footer {
+    margin-top: 30px;
+    padding: 10px;
+    color: #999;
+    font-size: 0.8em;
+    text-align: center;
+    width: 100%;
+}
+
+footer a {
+    color: var(--color-primary);
+    text-decoration: none;
+}
+
+/* 8. Media Query para Desktop/Tablet (Responsividade) */
+@media (min-width: 600px) {
+    h1 {
+        font-size: 2.5em;
+    }
+    #controls {
+        flex-direction: row; /* Volta para lado a lado */
+        justify-content: center;
+        max-width: 500px;
+        margin-left: auto;
+        margin-right: auto;
+    }
+    .class-label {
+        width: 120px; /* Mais espaço para os rótulos em tela maior */
+    }
+}

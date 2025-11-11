@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Descarte Inteligente - Classificação de Lixo</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+    <script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script> 
+
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest/dist/tf.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@latest/dist/teachablemachine-image.min.js"></script>
+</head>
+<body>
+    <header>
+        <h1>♻️ Descarte Inteligente</h1>
+        <p>Use a câmera ou carregue uma imagem para classificar o tipo de lixo.</p>
+    </header>
+
+    <main>
+        <div id="controls">
+            <button id="webcamButton" onclick="startWebcam()">
+                <i class="fas fa-camera"></i> Ativar Webcam
+            </button>
+            <label class="custom-file-upload">
+                <input type="file" id="imageUpload" accept="image/*" onchange="handleImageUpload(event)">
+                <i class="fas fa-upload"></i> Carregar Imagem
+            </label>
+        </div>
+
+        <div id="prediction-area">
+            <video id="webcam-video" autoplay playsinline muted></video>
+            <img id="uploaded-image" style="display: none;"> 
+
+            <div id="bars-container">
+                </div>
+
+            <div id="label-container" class="result-box">
+                <p class="initial-message">Aguardando objeto...</p>
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        <p>&copy; 2024 Projeto Feira de Ciências. | Modelo: <a href="https://teachablemachine.withgoogle.com/models/-3-2Ngyl-/" target="_blank">Teachable Machine Model</a></p>
+    </footer>
+
+    <script src="script.js"></script>
+</body>
+</html>
