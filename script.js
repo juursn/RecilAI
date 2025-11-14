@@ -121,14 +121,18 @@ async function resumeWebcam() {
 
 async function stopWebcam() {
     if (webcam) {
-        if (webcam.webcam.srcObject) {
+        // 🚨 CORREÇÃO CRÍTICA: Adiciona verificação de existência para webcam.webcam e srcObject
+        if (webcam.webcam && webcam.webcam.srcObject) {
+            // Interrompe as tracks da câmera
             webcam.webcam.srcObject.getTracks().forEach(track => track.stop());
             webcam.webcam.srcObject = null;
         }
+        // Interrompe o objeto tmImage.Webcam
         webcam.stop();
-        webcam = null;
+        webcam = null; // Limpa a referência do objeto para o garbage collector
     }
 
+    // Assegura que todos os elementos de visualização sejam escondidos
     webcamVideo.style.display = 'none';
     uploadedImage.style.display = 'none';
     frozenImage.style.display = 'none';
