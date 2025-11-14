@@ -174,7 +174,6 @@ async function toggleCameraDirection() {
     toggleCameraButton.innerHTML = `<i class="fas fa-sync-alt"></i> Câmera ${directionText}`;
 
     // 2. Desliga a câmera atual
-    // Usamos 'await' para garantir que a parada ocorra antes de reiniciar
     await stopWebcam();
 
     // 3. Reinicia a câmera com o novo modo
