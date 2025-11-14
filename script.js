@@ -154,10 +154,11 @@ async function loop() {
     }
 }
 
-// CORREÇÃO 3: Garante que a imagem carregada seja a única a ser exibida.
+// CORREÇÃO FINAL: Garante a total parada da webcam e o uso do evento onload para exibição segura da imagem.
 async function handleImageUpload(event) {
     if (!model) { labelContainer.innerHTML = '<p style="color: red;">Modelo de IA não carregado.</p>'; return; }
 
+    // 1. Garante que a webcam seja totalmente parada antes de prosseguir
     if (isWebcamActive) {
         await stopWebcam();
         webcamButton.innerHTML = '<i class="fas fa-video"></i> Iniciar câmera';
@@ -167,22 +168,23 @@ async function handleImageUpload(event) {
     if (file) {
         const reader = new FileReader();
 
-        // 1. Limpa visualização antes de carregar o arquivo
+        // Limpa visualização antes de carregar o arquivo
         webcamVideo.style.display = 'none';
         frozenImage.style.display = 'none';
-        uploadedImage.style.display = 'none'; // Esconde primeiro
+        uploadedImage.style.display = 'none';
 
         reader.onload = function (e) {
             uploadedImage.src = e.target.result;
 
-            // 2. CRÍTICO: Usa o evento onload do elemento <img> para exibir e classificar
+            // CRÍTICO: Usa o evento onload do elemento <img> para exibir e classificar
+            // Isso evita a tela preta pois só exibe o elemento DEPOIS que ele tem dados.
             uploadedImage.onload = function () {
-                uploadedImage.style.display = 'block'; // Exibe a imagem APÓS o carregamento
+                uploadedImage.style.display = 'block';
                 currentPredictionSource = 'image';
                 predict(uploadedImage);
             }
 
-            // 3. Caso a imagem já esteja em cache (onload não dispara), chama manualmente
+            // Caso a imagem já esteja em cache (onload não dispara), chama manualmente
             if (uploadedImage.complete) {
                 uploadedImage.onload();
             }
