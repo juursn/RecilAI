@@ -37,7 +37,6 @@ async function init() {
     }
 }
 
-// CORREÇÃO 1: Limpeza de UI mais explícita e tratamento de erros na inicialização.
 async function startWebcam() {
     if (!model) {
         labelContainer.innerHTML = '<p style="color: red;">Modelo de IA não carregado. Verifique a URL do modelo no script.js.</p>';
@@ -48,7 +47,6 @@ async function startWebcam() {
         return isPaused ? resumeWebcam() : pauseWebcam();
     }
 
-    // Limpeza de UI antes de tentar iniciar a câmera
     uploadedImage.style.display = 'none';
     frozenImage.style.display = 'none';
     webcamVideo.style.display = 'none';
@@ -119,10 +117,8 @@ async function resumeWebcam() {
     window.requestAnimationFrame(loop);
 }
 
-// CORREÇÃO 2: Limpeza rigorosa da stream do vídeo HTML para evitar conflitos.
 async function stopWebcam() {
     if (webcam) {
-        // Interrompe a stream do Teachable Machine
         if (webcam.webcam && webcam.webcam.srcObject) {
             webcam.webcam.srcObject.getTracks().forEach(track => track.stop());
             webcam.webcam.srcObject = null;
@@ -131,7 +127,6 @@ async function stopWebcam() {
         webcam = null;
     }
 
-    // Limpa o srcObject do elemento de vídeo do HTML para liberar o recurso
     if (webcamVideo) {
         webcamVideo.srcObject = null;
     }
@@ -159,13 +154,11 @@ async function loop() {
     }
 }
 
-// CORREÇÃO 3: Garante que a imagem carregada seja a única a ser exibida (evita tela preta)
+// CORREÇÃO 3: Garante que a imagem carregada seja a única a ser exibida.
 async function handleImageUpload(event) {
     if (!model) { labelContainer.innerHTML = '<p style="color: red;">Modelo de IA não carregado.</p>'; return; }
 
-    // 1. Garante que a webcam seja totalmente parada e a UI atualizada.
     if (isWebcamActive) {
-        // ESSENCIAL: Aguarda o término da parada da webcam.
         await stopWebcam();
         webcamButton.innerHTML = '<i class="fas fa-video"></i> Iniciar câmera';
     }
@@ -174,22 +167,22 @@ async function handleImageUpload(event) {
     if (file) {
         const reader = new FileReader();
 
-        // 2. Antes de ler o arquivo, limpa a área de exibição para a imagem.
+        // 1. Limpa visualização antes de carregar o arquivo
         webcamVideo.style.display = 'none';
         frozenImage.style.display = 'none';
-        uploadedImage.style.display = 'none'; // Esconde primeiro para evitar flash/preto
+        uploadedImage.style.display = 'none'; // Esconde primeiro
 
         reader.onload = function (e) {
             uploadedImage.src = e.target.result;
 
-            // CRÍTICO: Exibe a imagem APENAS quando o src estiver carregado.
+            // 2. CRÍTICO: Usa o evento onload do elemento <img> para exibir e classificar
             uploadedImage.onload = function () {
-                uploadedImage.style.display = 'block';
+                uploadedImage.style.display = 'block'; // Exibe a imagem APÓS o carregamento
                 currentPredictionSource = 'image';
                 predict(uploadedImage);
             }
 
-            // Caso a imagem já esteja em cache, dispara manualmente o onload
+            // 3. Caso a imagem já esteja em cache (onload não dispara), chama manualmente
             if (uploadedImage.complete) {
                 uploadedImage.onload();
             }
