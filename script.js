@@ -149,13 +149,12 @@ async function stopWebcam() {
 async function loop() {
     if (isWebcamActive && !isPaused && currentPredictionSource === 'webcam') {
         webcam.update();
-        // Nota: A predição deve usar o canvas da webcam se estiver ativa
         await predict(webcam.canvas);
         window.requestAnimationFrame(loop);
     }
 }
 
-// CORREÇÃO REFORÇADA: Garante a total parada e exibe a imagem somente quando carregada.
+// ⚠️ CORREÇÃO REFORÇADA AQUI: Garante a total parada da webcam e exibe a imagem somente quando carregada.
 async function handleImageUpload(event) {
     if (!model) { labelContainer.innerHTML = '<p style="color: red;">Modelo de IA não carregado.</p>'; return; }
 
@@ -173,19 +172,18 @@ async function handleImageUpload(event) {
         webcamVideo.style.display = 'none';
         frozenImage.style.display = 'none';
         uploadedImage.style.display = 'none';
-
-        // Limpa qualquer dado anterior no src
-        uploadedImage.src = '';
+        uploadedImage.src = ''; // Limpa o src anterior
 
         reader.onload = function (e) {
             uploadedImage.src = e.target.result;
 
             // 3. CRÍTICO: Usa o evento onload do elemento <img> para exibir e classificar
+            // Isso evita a tela preta pois só exibe o elemento DEPOIS que ele tem dados.
             uploadedImage.onload = function () {
-                uploadedImage.style.display = 'block';
+                uploadedImage.style.display = 'block'; // Exibe a imagem!
                 currentPredictionSource = 'image';
 
-                // Redefine a mensagem para indicar que o processamento está ocorrendo
+                // Mensagem de feedback
                 labelContainer.innerHTML = '<p class="initial-message">Processando imagem...</p>';
                 barsContainer.innerHTML = '';
 
