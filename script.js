@@ -56,6 +56,7 @@ async function startWebcam() {
     const flip = true;
 
     try {
+        // Tenta iniciar com 'environment' (traseira)
         const webcamSettings = { facingMode: currentFacingMode };
 
         if (webcam) {
@@ -73,8 +74,19 @@ async function startWebcam() {
 
     } catch (e) {
         console.error("Erro grave ao iniciar a webcam:", e);
-        labelContainer.innerHTML = '<div class="disposal-inconclusivo">❌ Erro de Acesso! Verifique as **permissões da câmera** e se o dispositivo não está em uso por outro programa.</div>';
-        return;
+        // Tenta iniciar com a câmera padrão ('user') se a traseira falhar
+        try {
+            const webcamSettingsFallback = { facingMode: 'user' };
+            webcam = new tmImage.Webcam(width, height, flip, webcamSettingsFallback);
+            await webcam.setup();
+            await webcam.play();
+            currentFacingMode = 'user'; // Atualiza o modo se o fallback for bem-sucedido
+            console.warn("Câmera traseira falhou, usando câmera frontal (fallback).");
+        } catch (e2) {
+            console.error("Erro ao iniciar a câmera frontal também:", e2);
+            labelContainer.innerHTML = '<div class="disposal-inconclusivo">❌ Erro de Acesso! Verifique as **permissões da câmera** e se o dispositivo não está em uso.</div>';
+            return;
+        }
     }
 
     // Sucesso na inicialização
@@ -119,6 +131,7 @@ async function resumeWebcam() {
 
 async function stopWebcam() {
     if (webcam) {
+        // CRÍTICO: Libera as tracks de mídia
         if (webcam.webcam && webcam.webcam.srcObject) {
             webcam.webcam.srcObject.getTracks().forEach(track => track.stop());
             webcam.webcam.srcObject = null;
@@ -128,9 +141,10 @@ async function stopWebcam() {
     }
 
     if (webcamVideo) {
-        webcamVideo.srcObject = null;
+        webcamVideo.srcObject = null; // Limpa o objeto de vídeo HTML
     }
 
+    // Esconde todos os elementos de visualização
     webcamVideo.style.display = 'none';
     uploadedImage.style.display = 'none';
     frozenImage.style.display = 'none';
@@ -154,11 +168,11 @@ async function loop() {
     }
 }
 
-// ⚠️ CORREÇÃO REFORÇADA AQUI: Garante a total parada da webcam e exibe a imagem somente quando carregada.
+// ⚠️ CORREÇÃO FINAL OTIMIZADA AQUI ⚠️
 async function handleImageUpload(event) {
     if (!model) { labelContainer.innerHTML = '<p style="color: red;">Modelo de IA não carregado.</p>'; return; }
 
-    // 1. Garante que a webcam seja totalmente parada antes de prosseguir
+    // 1. Garante que a webcam seja totalmente parada
     if (isWebcamActive) {
         await stopWebcam();
         webcamButton.innerHTML = '<i class="fas fa-video"></i> Iniciar câmera';
@@ -168,29 +182,31 @@ async function handleImageUpload(event) {
     if (file) {
         const reader = new FileReader();
 
-        // 2. Limpa visualização antes de carregar o arquivo
+        // 2. Limpa visualização
         webcamVideo.style.display = 'none';
         frozenImage.style.display = 'none';
         uploadedImage.style.display = 'none';
-        uploadedImage.src = ''; // Limpa o src anterior
+        uploadedImage.src = ''; // Limpa o src para forçar o recarregamento
+
 
         reader.onload = function (e) {
+            // 3. Define o src para carregar
             uploadedImage.src = e.target.result;
 
-            // 3. CRÍTICO: Usa o evento onload do elemento <img> para exibir e classificar
-            // Isso evita a tela preta pois só exibe o elemento DEPOIS que ele tem dados.
+            // 4. CRÍTICO: Usa o evento onload do elemento <img>
             uploadedImage.onload = function () {
-                uploadedImage.style.display = 'block'; // Exibe a imagem!
+                uploadedImage.style.display = 'block'; // Exibe SOMENTE após carregar
+                uploadedImage.style.objectFit = 'contain'; // Garante que a imagem caiba na área
+
                 currentPredictionSource = 'image';
 
-                // Mensagem de feedback
                 labelContainer.innerHTML = '<p class="initial-message">Processando imagem...</p>';
                 barsContainer.innerHTML = '';
 
-                predict(uploadedImage); // Usa o elemento <img> para a predição
+                predict(uploadedImage); // Chama a predição
             }
 
-            // 4. Caso a imagem já esteja em cache (onload não dispara), chama manualmente
+            // 5. Garante que o onload seja chamado se a imagem estiver em cache
             if (uploadedImage.complete) {
                 uploadedImage.onload();
             }
@@ -254,6 +270,13 @@ function getDisposalInfo(className) {
 }
 
 async function predict(imageElement) {
+    // Adição de verificação de elemento para evitar o erro de tela preta
+    if (!imageElement || (imageElement.tagName === 'IMG' && !imageElement.src)) {
+        console.error("Tentativa de predição com elemento de imagem nulo ou vazio.");
+        labelContainer.innerHTML = '<p class="disposal-inconclusivo">Erro: Objeto de imagem para análise não encontrado.</p>';
+        return;
+    }
+
     if (!model) return;
 
     const prediction = await model.predict(imageElement, false);
