@@ -16,7 +16,6 @@ const CONFIDENCE_THRESHOLD_CONFIRM = 0.85;
 const webcamVideo = document.getElementById("webcam-video");
 const uploadedImage = document.getElementById("uploaded-image");
 const webcamButton = document.getElementById("webcamButton");
-// REMOVIDO: const toggleCameraButton = document.getElementById("toggleCameraButton"); 
 const frozenImage = document.getElementById("frozen-image");
 
 // ----------------------------------------------------
@@ -26,8 +25,6 @@ const frozenImage = document.getElementById("frozen-image");
 async function init() {
     const modelURL = URL + "model.json";
     const metadataURL = URL + "metadata.json";
-
-    // Nenhuma referência ao toggleCameraButton aqui.
 
     try {
         model = await tmImage.load(modelURL, metadataURL);
@@ -40,6 +37,7 @@ async function init() {
     }
 }
 
+// CORREÇÃO 1: Limpeza de UI mais explícita e tratamento de erros na inicialização.
 async function startWebcam() {
     if (!model) {
         labelContainer.innerHTML = '<p style="color: red;">Modelo de IA não carregado. Verifique a URL do modelo no script.js.</p>';
@@ -50,14 +48,16 @@ async function startWebcam() {
         return isPaused ? resumeWebcam() : pauseWebcam();
     }
 
+    // Limpeza de UI antes de tentar iniciar a câmera
     uploadedImage.style.display = 'none';
     frozenImage.style.display = 'none';
+    webcamVideo.style.display = 'none';
+
     const width = 400;
     const height = 400;
     const flip = true;
 
     try {
-        // Usa o currentFacingMode fixo ('environment')
         const webcamSettings = { facingMode: currentFacingMode };
 
         if (webcam) {
@@ -80,14 +80,12 @@ async function startWebcam() {
     }
 
     // Sucesso na inicialização
-    webcamVideo.style.display = 'block';
     webcamVideo.srcObject = webcam.webcam.srcObject;
+    webcamVideo.style.display = 'block';
     isWebcamActive = true;
     isPaused = false;
     currentPredictionSource = 'webcam';
     webcamButton.innerHTML = '<i class="fas fa-pause"></i> Pausar câmera';
-
-    // Nenhuma referência ao toggleCameraButton aqui.
 
     window.requestAnimationFrame(loop);
 }
@@ -121,14 +119,21 @@ async function resumeWebcam() {
     window.requestAnimationFrame(loop);
 }
 
+// CORREÇÃO 2: Limpeza rigorosa da stream do vídeo HTML para evitar conflitos.
 async function stopWebcam() {
     if (webcam) {
+        // Interrompe a stream do Teachable Machine
         if (webcam.webcam && webcam.webcam.srcObject) {
             webcam.webcam.srcObject.getTracks().forEach(track => track.stop());
             webcam.webcam.srcObject = null;
         }
         webcam.stop();
         webcam = null;
+    }
+
+    // Limpa o srcObject do elemento de vídeo do HTML para liberar o recurso
+    if (webcamVideo) {
+        webcamVideo.srcObject = null;
     }
 
     webcamVideo.style.display = 'none';
@@ -139,15 +144,12 @@ async function stopWebcam() {
     isWebcamActive = false;
     isPaused = false;
     currentPredictionSource = null;
-    // Nenhuma referência ao toggleCameraButton aqui.
 
     webcamButton.innerHTML = '<i class="fas fa-video"></i> Iniciar câmera';
     labelContainer.className = 'result-box';
     labelContainer.innerHTML = '<p class="initial-message">Aguardando...</p>';
     barsContainer.innerHTML = '';
 }
-
-// FUNÇÃO REMOVIDA: toggleCameraDirection()
 
 async function loop() {
     if (isWebcamActive && !isPaused && currentPredictionSource === 'webcam') {
@@ -157,6 +159,7 @@ async function loop() {
     }
 }
 
+// CORREÇÃO 3: Garante que a imagem carregada seja a única a ser exibida (evita tela preta)
 async function handleImageUpload(event) {
     if (!model) { labelContainer.innerHTML = '<p style="color: red;">Modelo de IA não carregado.</p>'; return; }
 
@@ -170,10 +173,13 @@ async function handleImageUpload(event) {
         const reader = new FileReader();
 
         reader.onload = function (e) {
-            uploadedImage.src = e.target.result;
-            uploadedImage.style.display = 'block';
+
+            // Limpa visualização para garantir que só a imagem apareça
             webcamVideo.style.display = 'none';
             frozenImage.style.display = 'none';
+
+            uploadedImage.src = e.target.result;
+            uploadedImage.style.display = 'block'; // Força a exibição da imagem
 
             uploadedImage.onload = function () {
                 currentPredictionSource = 'image';
