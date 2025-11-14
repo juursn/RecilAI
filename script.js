@@ -5,7 +5,8 @@ let model, webcam, labelContainer, maxPredictions, barsContainer;
 let isWebcamActive = false;
 let isPaused = false;
 let currentPredictionSource = null;
-let currentFacingMode = 'environment'; // Padrão: 'environment' (traseira)
+// MODO FIXO: Define a câmera traseira como padrão e única opção
+let currentFacingMode = 'environment';
 
 // Limites de Confiança
 const CONFIDENCE_THRESHOLD_SUGGESTION = 0.40;
@@ -15,6 +16,8 @@ const CONFIDENCE_THRESHOLD_CONFIRM = 0.85;
 const webcamVideo = document.getElementById("webcam-video");
 const uploadedImage = document.getElementById("uploaded-image");
 const webcamButton = document.getElementById("webcamButton");
+// O elemento toggleCameraButton foi removido do HTML, mas a variável deve ser mantida ou removida
+// A melhor prática é removê-la para evitar erros. Vou manter a referência, mas ela não será usada.
 const toggleCameraButton = document.getElementById("toggleCameraButton");
 const frozenImage = document.getElementById("frozen-image");
 
@@ -26,7 +29,7 @@ async function init() {
     const modelURL = URL + "model.json";
     const metadataURL = URL + "metadata.json";
 
-    toggleCameraButton.innerHTML = '<i class="fas fa-sync-alt"></i> Câmera Traseira';
+    // REMOVIDO: Linhas relacionadas ao toggleCameraButton (feedback inicial)
 
     try {
         model = await tmImage.load(modelURL, metadataURL);
@@ -56,9 +59,9 @@ async function startWebcam() {
     const flip = true;
 
     try {
+        // Usa o currentFacingMode fixo ('environment')
         const webcamSettings = { facingMode: currentFacingMode };
 
-        // 🚨 CRÍTICO: Garante a destruição completa do objeto anterior
         if (webcam) {
             if (webcam.webcam && webcam.webcam.srcObject) {
                 webcam.webcam.srcObject.getTracks().forEach(track => track.stop());
@@ -67,7 +70,6 @@ async function startWebcam() {
             webcam = null;
         }
 
-        // RECRIAMOS A INSTÂNCIA DO ZERO com o currentFacingMode
         webcam = new tmImage.Webcam(width, height, flip, webcamSettings);
 
         await webcam.setup();
@@ -75,8 +77,9 @@ async function startWebcam() {
 
     } catch (e) {
         console.error("Erro grave ao iniciar a webcam:", e);
-        // Lança um erro para ser pego pela função chamadora (toggleCameraDirection)
-        throw new Error("Falha ao iniciar stream de webcam.");
+        labelContainer.innerHTML = '<div class="disposal-inconclusivo">❌ Erro de Acesso! Verifique as **permissões da câmera** e se o dispositivo não está em uso por outro programa.</div>';
+        // Não lançamos erro aqui, pois não há lógica de recuperação, apenas a falha inicial.
+        return;
     }
 
     // Sucesso na inicialização
@@ -86,7 +89,9 @@ async function startWebcam() {
     isPaused = false;
     currentPredictionSource = 'webcam';
     webcamButton.innerHTML = '<i class="fas fa-pause"></i> Pausar câmera';
-    toggleCameraButton.disabled = false;
+
+    // REMOVIDO: Desabilitação/Habilitação do toggleCameraButton
+
     window.requestAnimationFrame(loop);
 }
 
@@ -121,18 +126,15 @@ async function resumeWebcam() {
 
 async function stopWebcam() {
     if (webcam) {
-        // 🚨 CORREÇÃO CRÍTICA: Adiciona verificação de existência para webcam.webcam e srcObject
+        // CORREÇÃO: Adicionada verificação rigorosa de srcObject para evitar o 'Cannot read properties of null'
         if (webcam.webcam && webcam.webcam.srcObject) {
-            // Interrompe as tracks da câmera
             webcam.webcam.srcObject.getTracks().forEach(track => track.stop());
             webcam.webcam.srcObject = null;
         }
-        // Interrompe o objeto tmImage.Webcam
         webcam.stop();
-        webcam = null; // Limpa a referência do objeto para o garbage collector
+        webcam = null;
     }
 
-    // Assegura que todos os elementos de visualização sejam escondidos
     webcamVideo.style.display = 'none';
     uploadedImage.style.display = 'none';
     frozenImage.style.display = 'none';
@@ -141,7 +143,7 @@ async function stopWebcam() {
     isWebcamActive = false;
     isPaused = false;
     currentPredictionSource = null;
-    toggleCameraButton.disabled = true;
+    // REMOVIDO: toggleCameraButton.disabled = true;
 
     webcamButton.innerHTML = '<i class="fas fa-video"></i> Iniciar câmera';
     labelContainer.className = 'result-box';
@@ -149,48 +151,7 @@ async function stopWebcam() {
     barsContainer.innerHTML = '';
 }
 
-// CORREÇÃO FINAL: Lógica de recuperação de falha ao alternar a câmera
-async function toggleCameraDirection() {
-    if (!isWebcamActive) return;
-
-    const originalFacingMode = currentFacingMode;
-
-    // 1. Inverte o modo e atualiza o feedback
-    currentFacingMode = (currentFacingMode === 'environment') ? 'user' : 'environment';
-    const directionText = (currentFacingMode === 'environment') ? 'Traseira' : 'Frontal';
-    toggleCameraButton.innerHTML = `<i class="fas fa-sync-alt"></i> Câmera ${directionText}`;
-
-    // 2. Desliga a câmera atual (essencial para liberar o recurso)
-    await stopWebcam();
-
-    // 3. Tenta iniciar a câmera com o NOVO MODO
-    try {
-        await startWebcam();
-
-    } catch (e) {
-        // 🚨 LÓGICA DE RECUPERAÇÃO: O novo modo falhou. Tentar reverter.
-        console.error("Tentativa de alternar a câmera falhou. Tentando reverter...", e);
-
-        // Reverte o currentFacingMode para o original
-        currentFacingMode = originalFacingMode;
-
-        // Tenta iniciar a câmera no modo original
-        try {
-            await startWebcam();
-
-            // Se a recuperação for bem-sucedida
-            const revertedDirectionText = (currentFacingMode === 'environment') ? 'Traseira' : 'Frontal';
-            toggleCameraButton.innerHTML = `<i class="fas fa-sync-alt"></i> Câmera ${revertedDirectionText}`;
-            labelContainer.innerHTML = '<div class="disposal-inconclusivo" style="color: orange;">⚠️ Falha ao alternar! Restaurado o modo de câmera anterior.</div>';
-
-        } catch (e2) {
-            // Se a recuperação também falhar
-            console.error("Falha ao restaurar a câmera original. Parando tudo.", e2);
-            await stopWebcam();
-            labelContainer.innerHTML = '<div class="disposal-inconclusivo" style="color: red;">❌ Erro Crítico: Não foi possível alternar nem restaurar a câmera. Verifique permissões.</div>';
-        }
-    }
-}
+// FUNÇÃO REMOVIDA: toggleCameraDirection() - Não é mais necessária
 
 async function loop() {
     if (isWebcamActive && !isPaused && currentPredictionSource === 'webcam') {
@@ -200,7 +161,6 @@ async function loop() {
     }
 }
 
-// CORRIGIDO: Transformada em async e adicionado await para stopWebcam()
 async function handleImageUpload(event) {
     if (!model) { labelContainer.innerHTML = '<p style="color: red;">Modelo de IA não carregado.</p>'; return; }
 
