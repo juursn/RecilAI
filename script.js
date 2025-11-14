@@ -1,4 +1,4 @@
-// URL do modelo da IA (Mantida):
+// URL do modelo da IA (VERIFIQUE SE ESTÁ CORRETA):
 const URL = "https://teachablemachine.withgoogle.com/models/-3-2Ngyl-/";
 
 let model, webcam, labelContainer, maxPredictions, barsContainer;
@@ -8,8 +8,8 @@ let currentPredictionSource = null;
 let currentFacingMode = 'environment'; // Padrão: 'environment' (traseira)
 
 // Limites de Confiança
-const CONFIDENCE_THRESHOLD_SUGGESTION = 0.40; // 40% para "Eu acredito que seja..."
-const CONFIDENCE_THRESHOLD_CONFIRM = 0.85; // 85% para certeza total
+const CONFIDENCE_THRESHOLD_SUGGESTION = 0.40;
+const CONFIDENCE_THRESHOLD_CONFIRM = 0.85;
 
 // Elementos HTML
 const webcamVideo = document.getElementById("webcam-video");
@@ -26,7 +26,6 @@ async function init() {
     const modelURL = URL + "model.json";
     const metadataURL = URL + "metadata.json";
 
-    // Adiciona feedback inicial ao botão de alternância
     toggleCameraButton.innerHTML = '<i class="fas fa-sync-alt"></i> Câmera Traseira';
 
     try {
@@ -41,23 +40,15 @@ async function init() {
 }
 
 async function startWebcam() {
-    // 1. Verifica se o modelo está carregado 
     if (!model) {
         labelContainer.innerHTML = '<p style="color: red;">Modelo de IA não carregado. Verifique a URL do modelo no script.js.</p>';
         return;
     }
 
-    // 2. Lógica de clique (Pausa/Resumo)
     if (isWebcamActive) {
-        if (isPaused) {
-            resumeWebcam();
-        } else {
-            pauseWebcam();
-        }
-        return;
+        return isPaused ? resumeWebcam() : pauseWebcam();
     }
 
-    // 3. Inicializa a Webcam
     uploadedImage.style.display = 'none';
     frozenImage.style.display = 'none';
     const width = 400;
@@ -66,9 +57,17 @@ async function startWebcam() {
 
     try {
         const webcamSettings = { facingMode: currentFacingMode };
-        // Garante que o objeto webcam antigo seja nulo antes de criar o novo
-        if (webcam) webcam = null;
 
+        // 🚨 CRÍTICO: Garante a destruição completa do objeto anterior
+        if (webcam) {
+            if (webcam.webcam && webcam.webcam.srcObject) {
+                webcam.webcam.srcObject.getTracks().forEach(track => track.stop());
+            }
+            webcam.stop();
+            webcam = null;
+        }
+
+        // RECRIAMOS A INSTÂNCIA DO ZERO com o currentFacingMode
         webcam = new tmImage.Webcam(width, height, flip, webcamSettings);
 
         await webcam.setup();
@@ -76,61 +75,45 @@ async function startWebcam() {
 
     } catch (e) {
         console.error("Erro grave ao iniciar a webcam:", e);
-        labelContainer.innerHTML = '<div class="disposal-inconclusivo">❌ Erro de Acesso! Verifique as **permissões da câmera** e se o dispositivo não está em uso por outro programa.</div>';
-        return;
+        // Lança um erro para ser pego pela função chamadora (toggleCameraDirection)
+        throw new Error("Falha ao iniciar stream de webcam.");
     }
 
     // Sucesso na inicialização
     webcamVideo.style.display = 'block';
-    webcamVideo.srcObject = webcam.webcam.srcObject; // Associa a stream ao elemento <video>
+    webcamVideo.srcObject = webcam.webcam.srcObject;
     isWebcamActive = true;
     isPaused = false;
     currentPredictionSource = 'webcam';
     webcamButton.innerHTML = '<i class="fas fa-pause"></i> Pausar câmera';
-    toggleCameraButton.disabled = false; // Habilita o alternador
-    window.requestAnimationFrame(loop); // Inicia o loop
+    toggleCameraButton.disabled = false;
+    window.requestAnimationFrame(loop);
 }
 
-// FUNÇÃO CORRIGIDA DE PAUSA: Tira um snapshot e congela a imagem
 function pauseWebcam() {
     if (!isWebcamActive || isPaused) return;
 
     if (webcam && webcam.canvas) {
-        webcam.update(); // Garante o último frame
-
-        // Tira um snapshot do canvas
+        webcam.update();
         const snapshot = webcam.canvas.toDataURL('image/jpeg', 1.0);
-
-        // Exibe o snapshot no elemento #frozen-image
         frozenImage.src = snapshot;
         frozenImage.style.display = 'block';
-
-        // Copia o tamanho para o congelamento ficar no lugar certo
-        frozenImage.style.width = webcamVideo.clientWidth + 'px'; // Usa clientWidth/Height para o tamanho real
+        frozenImage.style.width = webcamVideo.clientWidth + 'px';
         frozenImage.style.height = webcamVideo.clientHeight + 'px';
     }
 
-    // Esconde o elemento de vídeo ao vivo
     webcamVideo.style.display = 'none';
-
-    // Atualiza o estado para parar o loop
     isPaused = true;
     webcamButton.innerHTML = '<i class="fas fa-play"></i> ▶️Despausar';
     labelContainer.innerHTML = '<p class="initial-message" style="color: #007bff;">⏸️ Câmera Pausada</p>';
 }
 
-// FUNÇÃO CORRIGIDA DE RESUMO: Remove o snapshot e reativa o vídeo
 async function resumeWebcam() {
     if (!isWebcamActive || !isPaused) return;
 
-    // Esconde o snapshot congelado
     frozenImage.style.display = 'none';
     frozenImage.src = '';
-
-    // Reativa o vídeo ao vivo
     webcamVideo.style.display = 'block';
-
-    // Atualiza o estado e retoma o loop
     isPaused = false;
     webcamButton.innerHTML = '<i class="fas fa-pause"></i> Pausar câmera';
     window.requestAnimationFrame(loop);
@@ -138,17 +121,14 @@ async function resumeWebcam() {
 
 async function stopWebcam() {
     if (webcam) {
-        // Interrompe as tracks da câmera
         if (webcam.webcam.srcObject) {
             webcam.webcam.srcObject.getTracks().forEach(track => track.stop());
             webcam.webcam.srcObject = null;
         }
-        // Interrompe o objeto tmImage.Webcam
         webcam.stop();
-        webcam = null; // Limpa a referência do objeto
+        webcam = null;
     }
 
-    // Assegura que todos os elementos de visualização sejam escondidos
     webcamVideo.style.display = 'none';
     uploadedImage.style.display = 'none';
     frozenImage.style.display = 'none';
@@ -165,43 +145,50 @@ async function stopWebcam() {
     barsContainer.innerHTML = '';
 }
 
-// CORREÇÃO: Adicionada lógica de try/catch para maior robustez ao alternar a câmera.
+// CORREÇÃO FINAL: Lógica de recuperação de falha ao alternar a câmera
 async function toggleCameraDirection() {
     if (!isWebcamActive) return;
 
-    // Guarda o modo de câmera original caso o novo modo falhe
     const originalFacingMode = currentFacingMode;
 
-    // 1. Inverte o modo E ATUALIZA O FEEDBACK IMEDIATAMENTE
+    // 1. Inverte o modo e atualiza o feedback
     currentFacingMode = (currentFacingMode === 'environment') ? 'user' : 'environment';
     const directionText = (currentFacingMode === 'environment') ? 'Traseira' : 'Frontal';
     toggleCameraButton.innerHTML = `<i class="fas fa-sync-alt"></i> Câmera ${directionText}`;
 
-    // 2. Desliga a câmera atual
+    // 2. Desliga a câmera atual (essencial para liberar o recurso)
     await stopWebcam();
 
-    // 3. Tenta reiniciar a câmera com o novo modo
+    // 3. Tenta iniciar a câmera com o NOVO MODO
     try {
         await startWebcam();
 
     } catch (e) {
-        // Se falhar ao iniciar o novo modo, reverte para o original
-        console.error("Falha ao alternar a direção da câmera:", e);
+        // 🚨 LÓGICA DE RECUPERAÇÃO: O novo modo falhou. Tentar reverter.
+        console.error("Tentativa de alternar a câmera falhou. Tentando reverter...", e);
 
-        // Reverte as variáveis de estado
+        // Reverte o currentFacingMode para o original
         currentFacingMode = originalFacingMode;
 
-        // Atualiza a UI para o estado anterior
-        const revertedDirectionText = (currentFacingMode === 'environment') ? 'Traseira' : 'Frontal';
-        toggleCameraButton.innerHTML = `<i class="fas fa-sync-alt"></i> Câmera ${revertedDirectionText}`;
+        // Tenta iniciar a câmera no modo original
+        try {
+            await startWebcam();
 
-        // Informa o usuário
-        labelContainer.innerHTML = '<div class="disposal-inconclusivo" style="color: red;">⚠️ Falha ao alternar! Este dispositivo pode ter apenas uma câmera disponível, ou a permissão foi perdida.</div>';
+            // Se a recuperação for bem-sucedida
+            const revertedDirectionText = (currentFacingMode === 'environment') ? 'Traseira' : 'Frontal';
+            toggleCameraButton.innerHTML = `<i class="fas fa-sync-alt"></i> Câmera ${revertedDirectionText}`;
+            labelContainer.innerHTML = '<div class="disposal-inconclusivo" style="color: orange;">⚠️ Falha ao alternar! Restaurado o modo de câmera anterior.</div>';
+
+        } catch (e2) {
+            // Se a recuperação também falhar
+            console.error("Falha ao restaurar a câmera original. Parando tudo.", e2);
+            await stopWebcam();
+            labelContainer.innerHTML = '<div class="disposal-inconclusivo" style="color: red;">❌ Erro Crítico: Não foi possível alternar nem restaurar a câmera. Verifique permissões.</div>';
+        }
     }
 }
 
 async function loop() {
-    // Se a webcam estiver ativa E NÃO pausada, continua a predição
     if (isWebcamActive && !isPaused && currentPredictionSource === 'webcam') {
         webcam.update();
         await predict(webcam.canvas);
@@ -209,13 +196,12 @@ async function loop() {
     }
 }
 
-// CORREÇÃO: Transformada em async e adicionado await para stopWebcam() (Resolve o travamento no upload)
+// CORRIGIDO: Transformada em async e adicionado await para stopWebcam()
 async function handleImageUpload(event) {
     if (!model) { labelContainer.innerHTML = '<p style="color: red;">Modelo de IA não carregado.</p>'; return; }
 
-    // Garante que a webcam seja parada e escondida antes de mostrar a imagem
     if (isWebcamActive) {
-        await stopWebcam(); // AGORA ESPERA A CÂMERA PARAR COMPLETAMENTE
+        await stopWebcam();
         webcamButton.innerHTML = '<i class="fas fa-video"></i> Iniciar câmera';
     }
 
@@ -225,16 +211,15 @@ async function handleImageUpload(event) {
 
         reader.onload = function (e) {
             uploadedImage.src = e.target.result;
-            uploadedImage.style.display = 'block'; // Mostra a imagem
-            webcamVideo.style.display = 'none'; // Esconde o vídeo 
-            frozenImage.style.display = 'none'; // Esconde o congelamento
+            uploadedImage.style.display = 'block';
+            webcamVideo.style.display = 'none';
+            frozenImage.style.display = 'none';
 
             uploadedImage.onload = function () {
                 currentPredictionSource = 'image';
                 predict(uploadedImage);
             }
 
-            // Garante que o predict rode mesmo se a imagem já estiver em cache
             if (uploadedImage.complete) {
                 uploadedImage.onload();
             }
