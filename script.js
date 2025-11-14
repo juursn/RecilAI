@@ -163,7 +163,9 @@ async function loop() {
 async function handleImageUpload(event) {
     if (!model) { labelContainer.innerHTML = '<p style="color: red;">Modelo de IA não carregado.</p>'; return; }
 
+    // 1. Garante que a webcam seja totalmente parada e a UI atualizada.
     if (isWebcamActive) {
+        // ESSENCIAL: Aguarda o término da parada da webcam.
         await stopWebcam();
         webcamButton.innerHTML = '<i class="fas fa-video"></i> Iniciar câmera';
     }
@@ -172,20 +174,22 @@ async function handleImageUpload(event) {
     if (file) {
         const reader = new FileReader();
 
+        // 2. Antes de ler o arquivo, limpa a área de exibição para a imagem.
+        webcamVideo.style.display = 'none';
+        frozenImage.style.display = 'none';
+        uploadedImage.style.display = 'none'; // Esconde primeiro para evitar flash/preto
+
         reader.onload = function (e) {
-
-            // Limpa visualização para garantir que só a imagem apareça
-            webcamVideo.style.display = 'none';
-            frozenImage.style.display = 'none';
-
             uploadedImage.src = e.target.result;
-            uploadedImage.style.display = 'block'; // Força a exibição da imagem
 
+            // CRÍTICO: Exibe a imagem APENAS quando o src estiver carregado.
             uploadedImage.onload = function () {
+                uploadedImage.style.display = 'block';
                 currentPredictionSource = 'image';
                 predict(uploadedImage);
             }
 
+            // Caso a imagem já esteja em cache, dispara manualmente o onload
             if (uploadedImage.complete) {
                 uploadedImage.onload();
             }
