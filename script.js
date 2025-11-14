@@ -149,12 +149,13 @@ async function stopWebcam() {
 async function loop() {
     if (isWebcamActive && !isPaused && currentPredictionSource === 'webcam') {
         webcam.update();
+        // Nota: A predição deve usar o canvas da webcam se estiver ativa
         await predict(webcam.canvas);
         window.requestAnimationFrame(loop);
     }
 }
 
-// CORREÇÃO FINAL: Garante a total parada da webcam e o uso do evento onload para exibição segura da imagem.
+// CORREÇÃO REFORÇADA: Garante a total parada e exibe a imagem somente quando carregada.
 async function handleImageUpload(event) {
     if (!model) { labelContainer.innerHTML = '<p style="color: red;">Modelo de IA não carregado.</p>'; return; }
 
@@ -168,23 +169,30 @@ async function handleImageUpload(event) {
     if (file) {
         const reader = new FileReader();
 
-        // Limpa visualização antes de carregar o arquivo
+        // 2. Limpa visualização antes de carregar o arquivo
         webcamVideo.style.display = 'none';
         frozenImage.style.display = 'none';
         uploadedImage.style.display = 'none';
 
+        // Limpa qualquer dado anterior no src
+        uploadedImage.src = '';
+
         reader.onload = function (e) {
             uploadedImage.src = e.target.result;
 
-            // CRÍTICO: Usa o evento onload do elemento <img> para exibir e classificar
-            // Isso evita a tela preta pois só exibe o elemento DEPOIS que ele tem dados.
+            // 3. CRÍTICO: Usa o evento onload do elemento <img> para exibir e classificar
             uploadedImage.onload = function () {
                 uploadedImage.style.display = 'block';
                 currentPredictionSource = 'image';
-                predict(uploadedImage);
+
+                // Redefine a mensagem para indicar que o processamento está ocorrendo
+                labelContainer.innerHTML = '<p class="initial-message">Processando imagem...</p>';
+                barsContainer.innerHTML = '';
+
+                predict(uploadedImage); // Usa o elemento <img> para a predição
             }
 
-            // Caso a imagem já esteja em cache (onload não dispara), chama manualmente
+            // 4. Caso a imagem já esteja em cache (onload não dispara), chama manualmente
             if (uploadedImage.complete) {
                 uploadedImage.onload();
             }
