@@ -165,8 +165,12 @@ async function stopWebcam() {
     barsContainer.innerHTML = '';
 }
 
+// CORREÇÃO: Adicionada lógica de try/catch para maior robustez ao alternar a câmera.
 async function toggleCameraDirection() {
     if (!isWebcamActive) return;
+
+    // Guarda o modo de câmera original caso o novo modo falhe
+    const originalFacingMode = currentFacingMode;
 
     // 1. Inverte o modo E ATUALIZA O FEEDBACK IMEDIATAMENTE
     currentFacingMode = (currentFacingMode === 'environment') ? 'user' : 'environment';
@@ -174,11 +178,26 @@ async function toggleCameraDirection() {
     toggleCameraButton.innerHTML = `<i class="fas fa-sync-alt"></i> Câmera ${directionText}`;
 
     // 2. Desliga a câmera atual
-    // Usamos 'await' para garantir que a parada ocorra antes de reiniciar
     await stopWebcam();
 
-    // 3. Reinicia a câmera com o novo modo
-    await startWebcam();
+    // 3. Tenta reiniciar a câmera com o novo modo
+    try {
+        await startWebcam();
+
+    } catch (e) {
+        // Se falhar ao iniciar o novo modo, reverte para o original
+        console.error("Falha ao alternar a direção da câmera:", e);
+
+        // Reverte as variáveis de estado
+        currentFacingMode = originalFacingMode;
+
+        // Atualiza a UI para o estado anterior
+        const revertedDirectionText = (currentFacingMode === 'environment') ? 'Traseira' : 'Frontal';
+        toggleCameraButton.innerHTML = `<i class="fas fa-sync-alt"></i> Câmera ${revertedDirectionText}`;
+
+        // Informa o usuário
+        labelContainer.innerHTML = '<div class="disposal-inconclusivo" style="color: red;">⚠️ Falha ao alternar! Este dispositivo pode ter apenas uma câmera disponível, ou a permissão foi perdida.</div>';
+    }
 }
 
 async function loop() {
@@ -190,7 +209,7 @@ async function loop() {
     }
 }
 
-// CORREÇÃO: Transformada em async e adicionado await para stopWebcam()
+// CORREÇÃO: Transformada em async e adicionado await para stopWebcam() (Resolve o travamento no upload)
 async function handleImageUpload(event) {
     if (!model) { labelContainer.innerHTML = '<p style="color: red;">Modelo de IA não carregado.</p>'; return; }
 
