@@ -16,9 +16,7 @@ const CONFIDENCE_THRESHOLD_CONFIRM = 0.85;
 const webcamVideo = document.getElementById("webcam-video");
 const uploadedImage = document.getElementById("uploaded-image");
 const webcamButton = document.getElementById("webcamButton");
-// O elemento toggleCameraButton foi removido do HTML, mas a variável deve ser mantida ou removida
-// A melhor prática é removê-la para evitar erros. Vou manter a referência, mas ela não será usada.
-const toggleCameraButton = document.getElementById("toggleCameraButton");
+// REMOVIDO: const toggleCameraButton = document.getElementById("toggleCameraButton"); 
 const frozenImage = document.getElementById("frozen-image");
 
 // ----------------------------------------------------
@@ -29,7 +27,7 @@ async function init() {
     const modelURL = URL + "model.json";
     const metadataURL = URL + "metadata.json";
 
-    // REMOVIDO: Linhas relacionadas ao toggleCameraButton (feedback inicial)
+    // Nenhuma referência ao toggleCameraButton aqui.
 
     try {
         model = await tmImage.load(modelURL, metadataURL);
@@ -78,7 +76,6 @@ async function startWebcam() {
     } catch (e) {
         console.error("Erro grave ao iniciar a webcam:", e);
         labelContainer.innerHTML = '<div class="disposal-inconclusivo">❌ Erro de Acesso! Verifique as **permissões da câmera** e se o dispositivo não está em uso por outro programa.</div>';
-        // Não lançamos erro aqui, pois não há lógica de recuperação, apenas a falha inicial.
         return;
     }
 
@@ -90,7 +87,7 @@ async function startWebcam() {
     currentPredictionSource = 'webcam';
     webcamButton.innerHTML = '<i class="fas fa-pause"></i> Pausar câmera';
 
-    // REMOVIDO: Desabilitação/Habilitação do toggleCameraButton
+    // Nenhuma referência ao toggleCameraButton aqui.
 
     window.requestAnimationFrame(loop);
 }
@@ -126,7 +123,6 @@ async function resumeWebcam() {
 
 async function stopWebcam() {
     if (webcam) {
-        // CORREÇÃO: Adicionada verificação rigorosa de srcObject para evitar o 'Cannot read properties of null'
         if (webcam.webcam && webcam.webcam.srcObject) {
             webcam.webcam.srcObject.getTracks().forEach(track => track.stop());
             webcam.webcam.srcObject = null;
@@ -143,7 +139,7 @@ async function stopWebcam() {
     isWebcamActive = false;
     isPaused = false;
     currentPredictionSource = null;
-    // REMOVIDO: toggleCameraButton.disabled = true;
+    // Nenhuma referência ao toggleCameraButton aqui.
 
     webcamButton.innerHTML = '<i class="fas fa-video"></i> Iniciar câmera';
     labelContainer.className = 'result-box';
@@ -151,7 +147,7 @@ async function stopWebcam() {
     barsContainer.innerHTML = '';
 }
 
-// FUNÇÃO REMOVIDA: toggleCameraDirection() - Não é mais necessária
+// FUNÇÃO REMOVIDA: toggleCameraDirection()
 
 async function loop() {
     if (isWebcamActive && !isPaused && currentPredictionSource === 'webcam') {
