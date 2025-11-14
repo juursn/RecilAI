@@ -26,6 +26,9 @@ async function init() {
     const modelURL = URL + "model.json";
     const metadataURL = URL + "metadata.json";
 
+    // Adiciona feedback inicial ao botão de alternância
+    toggleCameraButton.innerHTML = '<i class="fas fa-sync-alt"></i> Câmera Traseira';
+
     try {
         model = await tmImage.load(modelURL, metadataURL);
         maxPredictions = model.getTotalClasses();
@@ -63,6 +66,9 @@ async function startWebcam() {
 
     try {
         const webcamSettings = { facingMode: currentFacingMode };
+        // Garante que o objeto webcam antigo seja nulo antes de criar o novo
+        if (webcam) webcam = null;
+
         webcam = new tmImage.Webcam(width, height, flip, webcamSettings);
 
         await webcam.setup();
@@ -132,11 +138,14 @@ async function resumeWebcam() {
 
 async function stopWebcam() {
     if (webcam) {
-        webcam.stop();
+        // Interrompe as tracks da câmera
         if (webcam.webcam.srcObject) {
             webcam.webcam.srcObject.getTracks().forEach(track => track.stop());
             webcam.webcam.srcObject = null;
         }
+        // Interrompe o objeto tmImage.Webcam
+        webcam.stop();
+        webcam = null; // Limpa a referência do objeto
     }
 
     // Assegura que todos os elementos de visualização sejam escondidos
@@ -159,17 +168,17 @@ async function stopWebcam() {
 async function toggleCameraDirection() {
     if (!isWebcamActive) return;
 
-    // 1. Inverte o modo
+    // 1. Inverte o modo E ATUALIZA O FEEDBACK IMEDIATAMENTE
     currentFacingMode = (currentFacingMode === 'environment') ? 'user' : 'environment';
+    const directionText = (currentFacingMode === 'environment') ? 'Traseira' : 'Frontal';
+    toggleCameraButton.innerHTML = `<i class="fas fa-sync-alt"></i> Câmera ${directionText}`;
 
     // 2. Desliga a câmera atual
+    // Usamos 'await' para garantir que a parada ocorra antes de reiniciar
     await stopWebcam();
 
     // 3. Reinicia a câmera com o novo modo
     await startWebcam();
-
-    const directionText = (currentFacingMode === 'environment') ? 'Traseira' : 'Frontal';
-    toggleCameraButton.innerHTML = `<i class="fas fa-sync-alt"></i> Câmera ${directionText}`;
 }
 
 async function loop() {
@@ -205,6 +214,7 @@ function handleImageUpload(event) {
                 predict(uploadedImage);
             }
 
+            // Garante que o predict rode mesmo se a imagem já estiver em cache
             if (uploadedImage.complete) {
                 uploadedImage.onload();
             }
